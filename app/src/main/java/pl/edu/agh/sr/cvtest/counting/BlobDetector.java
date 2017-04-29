@@ -4,7 +4,6 @@ import android.util.Log;
 import org.opencv.core.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static org.opencv.imgproc.Imgproc.*;
@@ -12,10 +11,9 @@ import static org.opencv.core.Core.*;
 
 public class BlobDetector {
 
-    private Mat frame1;
-    private Mat frame2;
+    private Mat storedPrevFrame;
+    private Mat storedCurrentFrame;
 
-    private Mat difference;
     private Mat threshold;
 
     private Scalar SCALAR_BLACK = new Scalar(0.0, 0.0, 0.0);
@@ -24,41 +22,33 @@ public class BlobDetector {
     private Scalar SCALAR_GREEN = new Scalar(0, 200, 0);
 
     public Mat getMovingObjects(Mat newFrame) {
-        if (frame1 == null && frame2 == null) {
-            frame2 = newFrame.clone();
-            difference = new Mat(newFrame.size(), newFrame.type());
+        if (storedPrevFrame == null && storedCurrentFrame == null) {
+            storedCurrentFrame = newFrame.clone();
             threshold = new Mat(newFrame.size(), newFrame.type());
             return newFrame;
         }
-        if (frame1 != null) frame1.release();
-        frame1 = frame2;
-        frame2 = newFrame.clone();
+        if (storedPrevFrame != null) storedPrevFrame.release();
+        storedPrevFrame = storedCurrentFrame;
+        storedCurrentFrame = newFrame.clone();
 
-        Mat frame1Copy = frame1.clone();
-        Mat frame2Copy = frame2.clone();
-        cvtColor(frame1Copy, frame1Copy, COLOR_BGR2GRAY);
-        cvtColor(frame2Copy, frame2Copy, COLOR_BGR2GRAY);
-        GaussianBlur(frame1Copy, frame1Copy, new Size(5, 5), 0);
-        GaussianBlur(frame2Copy, frame2Copy, new Size(5, 5), 0);
-        absdiff(frame1Copy, frame2Copy, difference);
-        threshold(difference, threshold, 30, 255, THRESH_BINARY);
+        Mat frame1 = storedPrevFrame;
+        Mat frame2 = storedCurrentFrame.clone();
+        cvtColor(frame1, frame1, COLOR_BGR2GRAY);
+        cvtColor(frame2, frame2, COLOR_BGR2GRAY);
+        GaussianBlur(frame1, frame1, new Size(5, 5), 0);
+        GaussianBlur(frame2, frame2, new Size(5, 5), 0);
+        absdiff(frame1, frame2, threshold);
+        threshold(threshold, threshold, 30, 255, THRESH_BINARY);
 
-        Mat structuringElement3x3 = getStructuringElement(MORPH_RECT, new Size(3, 3));
         Mat structuringElement5x5 = getStructuringElement(MORPH_RECT, new Size(5, 5));
-        Mat structuringElement7x7 = getStructuringElement(MORPH_RECT, new Size(7, 7));
-        Mat structuringElement9x9 = getStructuringElement(MORPH_RECT, new Size(9, 9));
         dilate(threshold, threshold, structuringElement5x5);
         dilate(threshold, threshold, structuringElement5x5);
         erode(threshold, threshold, structuringElement5x5);
 
-        Mat thresholdCopy = threshold.clone();
         List<MatOfPoint> contours = new ArrayList<>();
-        findContours(thresholdCopy, contours, new Mat(), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-        Mat imgContours = new Mat(threshold.size(), CvType.CV_8UC3, SCALAR_BLACK);
-        drawContours(imgContours, contours, -1, SCALAR_WHITE, -1);
+        findContours(threshold, contours, new Mat(), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
         List<MatOfPoint> convexHulls = new ArrayList<>(contours.size());
-
         MatOfInt hull = new MatOfInt();
         for (int i = 0; i < contours.size(); i++) {
             convexHull(contours.get(i), hull);
@@ -80,22 +70,14 @@ public class BlobDetector {
             }
         }
 
-        Mat imgConvexHulls = new Mat(threshold.size(), CvType.CV_8UC3, SCALAR_BLACK);
-        convexHulls.clear();
-        for (Blob blob : blobs) {
-            convexHulls.add(blob.contour);
-        }
-
-        drawContours(imgConvexHulls, convexHulls, -1, SCALAR_WHITE, -1);
-
-        Mat frame2CopyAgain = frame2Copy.clone();
+        Mat currentFrameCopy = storedCurrentFrame.clone();
 
         for (Blob blob : blobs) {
-            rectangle(frame2CopyAgain, blob.boundingRect.tl(), blob.boundingRect.br(), SCALAR_RED, 2);
-            circle(frame2CopyAgain, blob.centerPosition, 3, SCALAR_GREEN, -1);
+            rectangle(currentFrameCopy, blob.boundingRect.tl(), blob.boundingRect.br(), SCALAR_RED, 2);
+            circle(currentFrameCopy, blob.centerPosition, 3, SCALAR_GREEN, -1);
         }
 
-        return frame2CopyAgain;
+        return currentFrameCopy;
     }
 
     private MatOfPoint hull2Points(MatOfInt hull, MatOfPoint contour) {
@@ -123,23 +105,5 @@ public class BlobDetector {
         Log.d("AAA", res.toString());
     }
 
-    /*List<Blob> getBlobs(Mat newFrame) {
-        if (frame1 == null && frame2 == null) {
-            frame2 = newFrame;
-            return Collections.emptyList();
-        }
-        frame1 = frame2;
-        frame2 = newFrame;
-
-        List<Blob> blobs = new ArrayList<>();
-        Mat frame1Copy = frame1.clone();
-        Mat frame2Copy = frame2.clone();
-        cvtColor(frame1Copy, frame1Copy, COLOR_BGR2GRAY);
-        cvtColor(frame2Copy, frame2Copy, COLOR_BGR2GRAY);
-        GaussianBlur(frame1Copy, frame1Copy, new Size(5, 5), 0);
-        GaussianBlur(frame2Copy, frame2Copy, new Size(5, 5), 0);
-        absdiff(frame1Copy, frame2Copy, difference);
-        threshold(difference, threshold, 30, 255, THRESH_BINARY);
-    }*/
 
 }
