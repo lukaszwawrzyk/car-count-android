@@ -18,8 +18,9 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
     private CameraBridgeViewBase mOpenCvCameraView;
     private BlobDetector detector;
-    private static final int PREVIEW_WIDTH = 176;
-    private static final int PREVIEW_HEIGHT = 144;
+    //176x144
+    private static final int PREVIEW_WIDTH = 640;
+    private static final int PREVIEW_HEIGHT = 480;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +84,6 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        return detector.getThreshold(inputFrame.rgba());
+        return detector.getMovingObjects(inputFrame.rgba());
     }
 }
