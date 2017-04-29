@@ -1,6 +1,9 @@
 package pl.edu.agh.sr.cvtest;
 
 
+import android.hardware.*;
+import android.hardware.Camera;
+import android.util.Log;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
@@ -13,6 +16,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.view.*;
+
+import java.util.List;
 
 public class OpenCVTutorial extends Activity implements OpenCVWorker.ResultCallback,
         SurfaceHolder.Callback, View.OnTouchListener, GestureDetector.OnDoubleTapListener {
@@ -167,6 +172,7 @@ public class OpenCVTutorial extends Activity implements OpenCVWorker.ResultCallb
         @Override
         public boolean handleMessage(Message message) {
             if (message.what == DRAW_RESULT_BITMAP) {
+                Log.d("MAIN", "Got result callback");
                 Bitmap resultBitmap = (Bitmap) message.obj;
                 Canvas canvas = null;
                 try {

@@ -2,6 +2,7 @@ package pl.edu.agh.sr.cvtest;
 
 
 import android.graphics.Bitmap;
+import android.util.Log;
 import org.opencv.android.Utils;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
@@ -31,9 +32,6 @@ public class OpenCVWorker implements Runnable {
     public static final double THRESHOLD_LOW = 35;
     public static final double THRESHOLD_HIGH = 35;
 
-    /**
-     * Boolean
-     */
     private boolean mDoProcess;
     private int mCameraId = SECOND_CAMERA;
     private Size mPreviewSize;
@@ -83,16 +81,20 @@ public class OpenCVWorker implements Runnable {
 
     // Setup the camera
     private void setupCamera() {
+        Log.d(TAG, "Setting up camera");
         if (mCamera != null) {
+            Log.d(TAG, "Releasing camera");
             VideoCapture camera = mCamera;
             mCamera = null; // Make it null before releasing...
             camera.release();
         }
 
-        mCamera = new VideoCapture(mCameraId);
-
+        mCamera = new VideoCapture();
+        Log.d(TAG, "Created mCamera with id " + mCameraId + " as: " + mCamera);
         mCamera.set(Videoio.CV_CAP_PROP_FRAME_WIDTH, 1280);
         mCamera.set(Videoio.CV_CAP_PROP_FRAME_HEIGHT, 720);
+        mCamera.open(Videoio.CV_CAP_ANDROID);
+        Log.d(TAG, "IS OPEN?: " + mCamera.isOpened());
     }
 
     /**
@@ -112,6 +114,7 @@ public class OpenCVWorker implements Runnable {
                     Bitmap.Config.ARGB_8888);
             mResultBitmaps.offer(resultBitmap);
         }
+        Log.d(TAG, "Inited matrices");
     }
 
     /**
@@ -119,6 +122,7 @@ public class OpenCVWorker implements Runnable {
      */
     @Override
     public void run() {
+        Log.d(TAG, "WORKER STARTED");
         mDoProcess = true;
         Rect previewRect = new Rect(0, 0, (int) mPreviewSize.width, (int) mPreviewSize.height);
         double fps;
@@ -132,6 +136,7 @@ public class OpenCVWorker implements Runnable {
         while (mDoProcess && mCamera != null) {
             boolean grabbed = mCamera.grab();
             if (grabbed) {
+                Log.d(TAG, "GRABBED !!!");
                 // Retrieve the next frame from the camera in RGB format
                 mCamera.retrieve(mCurrentFrame, Videoio.CV_CAP_MODE_RGB);
 
@@ -174,7 +179,7 @@ public class OpenCVWorker implements Runnable {
                     }
                 }
 
-                // If we have selected color, process the current frame using inRange function
+/*                // If we have selected color, process the current frame using inRange function
                 if (mLowerColorLimit != null && mUpperColorLimit != null) {
                     // Using the color limits to generate a mask (mInRangeResult)
                     Core.inRange(mCurrentFrameHsv, mLowerColorLimit, mUpperColorLimit, mInRangeResult);
@@ -185,9 +190,9 @@ public class OpenCVWorker implements Runnable {
                     mCurrentFrame.copyTo(mFilteredFrame, mInRangeResult);
 
                     notifyResultCallback(mFilteredFrame);
-                } else {
-                    notifyResultCallback(mCurrentFrame);
-                }
+                } else {*/
+                notifyResultCallback(mCurrentFrame);
+                /*}*/
 
                 fps = measureFps();
                 notifyFpsResult(fps);
