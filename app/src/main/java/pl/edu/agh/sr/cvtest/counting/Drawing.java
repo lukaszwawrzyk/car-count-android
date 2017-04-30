@@ -11,7 +11,11 @@ class Drawing {
     void blobs(List<Blob> blobs, Mat out) {
         out.setTo(Colors.BLACK);
         List<MatOfPoint> hullsOfBlobs = new ArrayList<>();
-        for (Blob blob : blobs) hullsOfBlobs.add(blob.contour);
+        for (Blob blob : blobs) {
+            if (blob.isStillTracked) {
+                hullsOfBlobs.add(blob.contour);
+            }
+        }
         Imgproc.drawContours(out, hullsOfBlobs, -1, Colors.WHITE, -1);
     }
 
@@ -34,14 +38,14 @@ class Drawing {
 
     private void drawCrossingLine(Mat output, Point[] crossingLine, boolean lineCrossed) {
         if (lineCrossed) {
-            drawCrossingLine(output, crossingLine, Colors.GREEN);
+            drawLine(output, crossingLine, Colors.GREEN);
         } else {
-            drawCrossingLine(output, crossingLine, Colors.RED);
+            drawLine(output, crossingLine, Colors.RED);
         }
     }
 
-    private void drawCrossingLine(Mat output, Point[] crossingLine, Scalar color) {
-        Imgproc.line(output, crossingLine[0], crossingLine[1], color, 2);
+    private void drawLine(Mat output, Point[] line, Scalar color) {
+        Imgproc.line(output, line[0], line[1], color, 2);
     }
 
 

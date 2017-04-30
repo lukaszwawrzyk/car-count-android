@@ -31,18 +31,30 @@ public class BlobDetector {
         }
         shiftFrames(newFrame);
 
+
         Mat prevFrame = storedPrevFrame;
         Mat currFrame = storedCurrentFrame.clone();
         bwBlur(prevFrame);
         bwBlur(currFrame);
         diffWithThreshold(prevFrame, currFrame, transformedFrame);
         dilate(transformedFrame);
+
+        FourWayDisplay display = new FourWayDisplay(transformedFrame);
+        display.put1(transformedFrame);
+
         List<Blob> currentFrameBlobs = getBlobs(transformedFrame);
+        draw.blobs(currentFrameBlobs, transformedFrame);
+        display.put2(transformedFrame);
+
         updateBlobs(currentFrameBlobs);
+        draw.blobs(blobs, transformedFrame);
+        display.put3(transformedFrame);
+
         boolean lineCrossed = countLineCrossingBlobs();
-        Mat output = storedCurrentFrame.clone();
+        Mat output = currFrame; // storedCurrentFrame.clone();
         draw.finalFrame(output, blobs, crossingLine, lineCrossed, carCount);
-        return output;
+        display.put4(output);
+        return display.getOutputImg();
     }
 
     private boolean countLineCrossingBlobs() {
