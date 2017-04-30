@@ -16,74 +16,67 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
     private static final String TAG = "MAIN";
 
-    private CameraBridgeViewBase mOpenCvCameraView;
-    private MainLoop detector;
-    //176x144
+    // 176x144 640x480 1024x768 1280x720
     private static final int PREVIEW_WIDTH = 640;
     private static final int PREVIEW_HEIGHT = 480;
+
+    private CameraBridgeViewBase cameraView;
+    private MainLoop loop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
-        mOpenCvCameraView.setMaxFrameSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
-        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-        mOpenCvCameraView.setCvCameraViewListener(this);
+        cameraView = (CameraBridgeViewBase) findViewById(R.id.HelloOpenCvView);
+        cameraView.setMaxFrameSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
+        cameraView.setVisibility(SurfaceView.VISIBLE);
+        cameraView.setCvCameraViewListener(this);
     }
 
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+    private BaseLoaderCallback openCvLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
             switch (status) {
                 case LoaderCallbackInterface.SUCCESS:
-                {
                     Log.i(TAG, "OpenCV loaded successfully");
-                    detector = new MainLoop();
-                    mOpenCvCameraView.enableView();
-                } break;
+                    loop = new MainLoop();
+                    cameraView.enableView();
+                    break;
                 default:
-                {
                     super.onManagerConnected(status);
-                } break;
+                    break;
             }
         }
     };
 
     @Override
-    public void onResume()
-    {
+    public void onResume() {
         super.onResume();
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, mLoaderCallback);
+        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_2_0, this, openCvLoaderCallback);
     }
 
     @Override
-    public void onPause()
-    {
+    public void onPause() {
         super.onPause();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+        disableCameraView();
     }
 
     public void onDestroy() {
         super.onDestroy();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+        disableCameraView();
     }
 
-    @Override
-    public void onCameraViewStarted(int width, int height) {
-
+    private void disableCameraView() {
+        if (cameraView != null) {
+            cameraView.disableView();
+        }
     }
 
-    @Override
-    public void onCameraViewStopped() {
-
+    @Override public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        return loop.getFrame(inputFrame.rgba());
     }
 
-    @Override
-    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        return detector.getFrame(inputFrame.rgba());
-    }
+    @Override public void onCameraViewStarted(int width, int height) { }
+    @Override public void onCameraViewStopped() { }
 }
