@@ -1,23 +1,24 @@
-package pl.edu.agh.sr.cvtest.counting;
+package pl.edu.agh.sr.cvtest.motion.blob;
 
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
+import pl.edu.agh.sr.cvtest.motion.crossing.CrossingLine;
 
 import java.util.ArrayList;
 import java.util.List;
 
-final class Blob {
-    int id;
-    MatOfPoint contour;
-    Rect boundingRect;
-    double diagonalSize;
-    double aspectRatio;
-    List<Point> positionHistory;
-    boolean matchFoundOrIsNew;
+public final class Blob {
+    public int id;
+    public MatOfPoint contour;
+    public Rect boundingRect;
+    public double diagonalSize;
+    private double aspectRatio;
+    public List<Point> positionHistory;
+    public boolean matchFoundOrIsNew;
     private int consecutiveFramesWithoutAMatch;
-    Point predictedPosition;
+    public Point predictedPosition;
 
     Blob(MatOfPoint contour) {
         positionHistory = new ArrayList<>();
@@ -38,7 +39,8 @@ final class Blob {
         consecutiveFramesWithoutAMatch = 0;
     }
 
-    Point position() { return positionHistory.get(positionHistory.size() - 1); }
+    public Point position() { return positionHistory.get(positionHistory.size() - 1); }
+
     private Point prevPosition() { return positionHistory.get(positionHistory.size() - 2); }
 
     boolean hasExpectedSizeAndShape() {
@@ -129,7 +131,7 @@ final class Blob {
         return distance < diagonalSize * 1.15;
     }
 
-    boolean crossed(CrossingLine crossingLine) {
+    public boolean crossed(CrossingLine crossingLine) {
         return positionHistory.size() >= 2 && crossingLine.crossed(prevPosition(), position());
     }
 }

@@ -1,13 +1,13 @@
-package pl.edu.agh.sr.cvtest.counting;
+package pl.edu.agh.sr.cvtest.motion.crossing;
 
 import org.opencv.core.Point;
 import org.opencv.core.Size;
 
-class CrossingLine {
+public class CrossingLine {
     private Point[] startAndEnd;
     private int position;
 
-    CrossingLine(Size frameSize) {
+    public CrossingLine(Size frameSize) {
         position = (int)Math.round(frameSize.height * 0.35);
 
         startAndEnd = new Point[2];
@@ -21,11 +21,11 @@ class CrossingLine {
         startAndEnd[1].y = position;
     }
 
-    boolean crossed(Point previous, Point current) {
+    public boolean crossed(Point previous, Point current) {
         return previous.y > position && current.y <= position;
     }
 
-    Point[] points() {
+    public Point[] points() {
         return startAndEnd;
     }
 }

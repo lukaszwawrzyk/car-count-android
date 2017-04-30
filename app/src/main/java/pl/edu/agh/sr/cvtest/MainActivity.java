@@ -10,7 +10,7 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
-import pl.edu.agh.sr.cvtest.counting.MainLoop;
+import pl.edu.agh.sr.cvtest.motion.MainLoop;
 
 public class MainActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
 

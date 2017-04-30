@@ -1,11 +1,11 @@
-package pl.edu.agh.sr.cvtest.counting;
+package pl.edu.agh.sr.cvtest.motion.drawing;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Rect;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
-class FourWayDisplay {
+public class FourWayDisplay {
     private Size halfSize;
     private Mat tmpMat;
     private Mat outputImg;
@@ -14,10 +14,10 @@ class FourWayDisplay {
     private Rect bl;
     private Rect br;
 
-    FourWayDisplay(Mat transformedFrame) {
-        outputImg = new Mat(transformedFrame.size(), transformedFrame.type());
+    public FourWayDisplay(Mat templateFrame) {
+        outputImg = new Mat(templateFrame.size(), templateFrame.type());
         halfSize = new Size(outputImg.size().width / 2, outputImg.size().height / 2);
-        tmpMat = new Mat(halfSize, transformedFrame.type());
+        tmpMat = new Mat(halfSize, templateFrame.type());
         tl = new Rect(0, 0, (int) halfSize.width, (int) halfSize.height);
         tr = new Rect((int) halfSize.width, 0, (int) halfSize.width, (int) halfSize.height);
         bl = new Rect(0, (int) halfSize.height, (int) halfSize.width, (int) halfSize.height);

@@ -1,15 +1,17 @@
-package pl.edu.agh.sr.cvtest.counting;
+package pl.edu.agh.sr.cvtest.motion.drawing;
 
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
+import pl.edu.agh.sr.cvtest.motion.blob.Blob;
+import pl.edu.agh.sr.cvtest.motion.crossing.CrossingLine;
 
 import java.util.ArrayList;
 import java.util.List;
 
-class Drawing {
+public class Drawing {
     private static final int fontFace = Core.FONT_HERSHEY_SIMPLEX;
 
-    void blobs(List<Blob> blobs, Mat out) {
+    public void blobs(List<Blob> blobs, Mat out) {
         out.setTo(Colors.BLACK);
         List<MatOfPoint> hullsOfBlobs = new ArrayList<>();
         for (Blob blob : blobs) {
@@ -18,7 +20,7 @@ class Drawing {
         Imgproc.drawContours(out, hullsOfBlobs, -1, Colors.WHITE, -1);
     }
 
-    void finalFrame(Mat output, List<Blob> blobs, CrossingLine crossingLine, boolean lineCrossed, int carCount) {
+    public void finalFrame(Mat output, List<Blob> blobs, CrossingLine crossingLine, boolean lineCrossed, int carCount) {
         drawBlobBoundingRects(output, blobs);
         drawCrossingLine(output, crossingLine, lineCrossed);
         drawCrossingBlobsCount(output, carCount);

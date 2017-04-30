@@ -1,4 +1,4 @@
-package pl.edu.agh.sr.cvtest.counting;
+package pl.edu.agh.sr.cvtest.motion.blob;
 
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
@@ -6,14 +6,14 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 
-class BlobDetector {
+public class BlobDetector {
     private final Mat transformedFrame;
 
-    BlobDetector(Mat transformedFrame) {
+    public BlobDetector(Mat transformedFrame) {
         this.transformedFrame = transformedFrame;
     }
 
-    List<Blob> detect(Mat prevFrame, Mat currFrame) {
+    public List<Blob> detect(Mat prevFrame, Mat currFrame) {
         bwBlur(prevFrame);
         bwBlur(currFrame);
         diffWithThreshold(prevFrame, currFrame, transformedFrame);

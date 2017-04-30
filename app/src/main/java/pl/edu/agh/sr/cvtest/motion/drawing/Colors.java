@@ -1,4 +1,4 @@
-package pl.edu.agh.sr.cvtest.counting;
+package pl.edu.agh.sr.cvtest.motion.drawing;
 
 import org.opencv.core.Scalar;
 
