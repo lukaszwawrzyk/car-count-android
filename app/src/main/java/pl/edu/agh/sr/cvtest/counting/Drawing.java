@@ -18,7 +18,7 @@ class Drawing {
         Imgproc.drawContours(out, hullsOfBlobs, -1, Colors.WHITE, -1);
     }
 
-    void finalFrame(Mat output, List<Blob> blobs, Point[] crossingLine, boolean lineCrossed, int carCount) {
+    void finalFrame(Mat output, List<Blob> blobs, CrossingLine crossingLine, boolean lineCrossed, int carCount) {
         drawBlobBoundingRects(output, blobs);
         drawCrossingLine(output, crossingLine, lineCrossed);
         drawCrossingBlobsCount(output, carCount);
@@ -26,19 +26,42 @@ class Drawing {
 
     private void drawBlobBoundingRects(Mat dest, List<Blob> blobs) {
         for (Blob blob : blobs) {
-            Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), Colors.ORANGE, 2);
-            Imgproc.circle(dest, blob.currPosition(), 3, Colors.GREEN, -1);
-            double fontScale = blob.diagonalSize / 100;
-            int fontThickness = (int)Math.round(fontScale);
-            Imgproc.putText(dest, String.valueOf(blob.id), blob.currPosition(), fontFace, fontScale, Colors.GREEN, fontThickness);
+            drawBoundingRect(dest, blob);
+            drawPositionTrace(dest, blob);
+            drawCurrentPosition(dest, blob);
+            drawBlobId(dest, blob);
         }
     }
 
-    private void drawCrossingLine(Mat output, Point[] crossingLine, boolean lineCrossed) {
+    private void drawBoundingRect(Mat dest, Blob blob) {
+        Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), Colors.ORANGE, 2);
+    }
+
+    private void drawPositionTrace(Mat dest, Blob blob) {
+        for (Point historicalPos : blob.positionHistory) {
+            drawPoint(dest, historicalPos, Colors.BLUE);
+        }
+    }
+
+    private void drawCurrentPosition(Mat dest, Blob blob) {
+        drawPoint(dest, blob.position(), Colors.GREEN);
+    }
+
+    private void drawPoint(Mat dest, Point center, Scalar color) {
+        Imgproc.circle(dest, center, 3, color, -1);
+    }
+
+    private void drawBlobId(Mat dest, Blob blob) {
+        double fontScale = blob.diagonalSize / 100;
+        int fontThickness = (int)Math.round(fontScale);
+        Imgproc.putText(dest, String.valueOf(blob.id), blob.position(), fontFace, fontScale, Colors.GREEN, fontThickness);
+    }
+
+    private void drawCrossingLine(Mat output, CrossingLine crossingLine, boolean lineCrossed) {
         if (lineCrossed) {
-            drawLine(output, crossingLine, Colors.GREEN);
+            drawLine(output, crossingLine.points(), Colors.GREEN);
         } else {
-            drawLine(output, crossingLine, Colors.RED);
+            drawLine(output, crossingLine.points(), Colors.RED);
         }
     }
 

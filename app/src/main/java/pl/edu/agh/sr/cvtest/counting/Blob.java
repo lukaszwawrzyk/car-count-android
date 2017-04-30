@@ -38,10 +38,10 @@ final class Blob {
         consecutiveFramesWithoutAMatch = 0;
     }
 
-    Point currPosition() { return positionHistory.get(positionHistory.size() - 1); }
-    Point prevPosition() { return positionHistory.get(positionHistory.size() - 2); }
+    Point position() { return positionHistory.get(positionHistory.size() - 1); }
+    private Point prevPosition() { return positionHistory.get(positionHistory.size() - 2); }
 
-    boolean isValid() {
+    boolean hasExpectedSizeAndShape() {
         return boundingRect.area() > 400 &&
                aspectRatio >= 0.2 &&
                aspectRatio <= 4.0 &&
@@ -114,7 +114,7 @@ final class Blob {
         boundingRect = currentFrameBlob.boundingRect;
         diagonalSize = currentFrameBlob.diagonalSize;
         aspectRatio = currentFrameBlob.aspectRatio;
-        positionHistory.add(currentFrameBlob.currPosition());
+        positionHistory.add(currentFrameBlob.position());
         matchFoundOrIsNew = currentFrameBlob.matchFoundOrIsNew;
     }
 
@@ -129,9 +129,7 @@ final class Blob {
         return distance < diagonalSize * 1.15;
     }
 
-    boolean isHorizontalLineCrossedFromBottom(int crossingLinePosition) {
-        return positionHistory.size() >= 2 &&
-                prevPosition().y > crossingLinePosition &&
-                currPosition().y <= crossingLinePosition;
+    boolean crossed(CrossingLine crossingLine) {
+        return positionHistory.size() >= 2 && crossingLine.crossed(prevPosition(), position());
     }
 }

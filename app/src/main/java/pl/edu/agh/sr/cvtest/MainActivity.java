@@ -10,14 +10,14 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
-import pl.edu.agh.sr.cvtest.counting.BlobDetector;
+import pl.edu.agh.sr.cvtest.counting.MainLoop;
 
 public class MainActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
     private static final String TAG = "MAIN";
 
     private CameraBridgeViewBase mOpenCvCameraView;
-    private BlobDetector detector;
+    private MainLoop detector;
     //176x144
     private static final int PREVIEW_WIDTH = 640;
     private static final int PREVIEW_HEIGHT = 480;
@@ -40,7 +40,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
-                    detector = new BlobDetector();
+                    detector = new MainLoop();
                     mOpenCvCameraView.enableView();
                 } break;
                 default:
@@ -84,6 +84,6 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        return detector.getMovingObjects(inputFrame.rgba());
+        return detector.getFrame(inputFrame.rgba());
     }
 }
