@@ -17,12 +17,6 @@ public class BlobDetector {
 
     private Mat transformedFrame;
 
-    private Scalar COLOR_BLACK = new Scalar(0, 0, 0);
-    private Scalar COLOR_WHITE = new Scalar(255, 255, 255);
-    private Scalar COLOR_RED = new Scalar(0, 0, 255);
-    private Scalar COLOR_BLUE = new Scalar(255, 0, 0);
-    private Scalar COLOR_GREEN = new Scalar(0, 255, 0);
-
     private boolean isFirstFrame = true;
 
     private List<Blob> blobs = new ArrayList<>();
@@ -138,23 +132,23 @@ public class BlobDetector {
         for (int i = 0; i < blobs.size(); i++) {
             Blob blob = blobs.get(i);
             if (blob.isStillTracked) {
-                Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), COLOR_BLUE, 2);
-                Imgproc.circle(dest, blob.position(), 3, COLOR_GREEN, -1);
+                Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), Colors.BLUE, 2);
+                Imgproc.circle(dest, blob.position(), 3, Colors.GREEN, -1);
                 int fontFace = Core.FONT_HERSHEY_SIMPLEX;
                 double fontScale = blob.diagonalSize / 60;
                 int fontThickness = (int)Math.round(fontScale);
-                Imgproc.putText(dest, String.valueOf(i), blob.position(), fontFace, fontScale, COLOR_RED, fontThickness);
+                Imgproc.putText(dest, String.valueOf(i), blob.position(), fontFace, fontScale, Colors.RED, fontThickness);
             }
         }
     }
 
     private void drawBlobs(List<Blob> blobs, Mat out) {
-        out.setTo(COLOR_BLACK);
+        out.setTo(Colors.BLACK);
         List<MatOfPoint> hullsOfBlobs = new ArrayList<>();
         for (Blob blob : blobs) {
             hullsOfBlobs.add(blob.contour);
         }
-        Imgproc.drawContours(out, hullsOfBlobs, -1, COLOR_WHITE, -1);
+        Imgproc.drawContours(out, hullsOfBlobs, -1, Colors.WHITE, -1);
     }
 
     private void bwBlur(Mat prevFrame) {
