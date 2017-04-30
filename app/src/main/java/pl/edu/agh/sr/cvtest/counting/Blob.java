@@ -16,8 +16,8 @@ final class Blob {
         this.contour = contour;
         boundingRect = Imgproc.boundingRect(contour);
 
-        double centerX = boundingRect.x + boundingRect.x + boundingRect.width / 2;
-        double centerY = boundingRect.y + boundingRect.y + boundingRect.height / 2;
+        double centerX = boundingRect.x + boundingRect.width / 2;
+        double centerY = boundingRect.y + boundingRect.height / 2;
         centerPosition = new Point(centerX, centerY);
 
         diagonalSize = Math.sqrt(Math.pow(boundingRect.width, 2) + Math.pow(boundingRect.height, 2));
