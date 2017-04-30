@@ -17,11 +17,15 @@ public class BlobDetector {
 
     private Mat transformedFrame;
 
-    private Scalar SCALAR_BLACK = new Scalar(0, 0, 0);
-    private Scalar SCALAR_WHITE = new Scalar(255, 255, 255);
-    private Scalar SCALAR_RED = new Scalar(0, 0, 255);
-    private Scalar SCALAR_BLUE = new Scalar(255, 0, 0);
-    private Scalar SCALAR_GREEN = new Scalar(0, 255, 0);
+    private Scalar COLOR_BLACK = new Scalar(0, 0, 0);
+    private Scalar COLOR_WHITE = new Scalar(255, 255, 255);
+    private Scalar COLOR_RED = new Scalar(0, 0, 255);
+    private Scalar COLOR_BLUE = new Scalar(255, 0, 0);
+    private Scalar COLOR_GREEN = new Scalar(0, 255, 0);
+
+    private boolean isFirstFrame = true;
+
+    private List<Blob> blobs = new ArrayList<>();
 
     public Mat getMovingObjects(Mat newFrame) {
         if (notInitialized()) {
@@ -30,21 +34,82 @@ public class BlobDetector {
         }
         shiftFrames(newFrame);
 
-        FourWayDisplay display = new FourWayDisplay(transformedFrame);
         Mat prevFrame = storedPrevFrame;
         Mat currFrame = storedCurrentFrame.clone();
         bwBlur(prevFrame);
         bwBlur(currFrame);
-        display.put1(currFrame);
         diffWithThreshold(prevFrame, currFrame, transformedFrame);
         dilate(transformedFrame);
-        display.put2(transformedFrame);
-        List<Blob> blobs = getBlobs();
-        drawBlobs(blobs, transformedFrame);
-        display.put3(transformedFrame);
-        drawBlobRects(currFrame, transformedFrame, blobs);
-        display.put4(transformedFrame);
-        return display.getOutputImg();
+        List<Blob> currentFrameBlobs = getBlobs();
+
+        if (isFirstFrame) {
+            blobs.addAll(currentFrameBlobs);
+            isFirstFrame = false;
+        } else {
+            matchBlobs(blobs, currentFrameBlobs);
+        }
+
+        Mat output = storedCurrentFrame.clone();
+        drawBlobRects(output, blobs);
+        return output;
+    }
+
+    private void matchBlobs(List<Blob> existingBlobs, List<Blob> currentFrameBlobs) {
+        for (Blob existingBlob : existingBlobs) {
+            existingBlob.matchFoundOrIsNew = false;
+            existingBlob.predictNextPosition();
+        }
+        for (Blob currentFrameBlob : currentFrameBlobs) {
+            int leastDistanceIndex = 0;
+            double leastDistance = 100000;
+
+            for (int i = 0; i < existingBlobs.size(); i++) {
+                if (existingBlobs.get(i).isStillTracked) {
+                    double distance = distanceBetweenPoints(currentFrameBlob.position(), existingBlobs.get(i).predictedPosition);
+                    if (distance < leastDistance) {
+                        leastDistance = distance;
+                        leastDistanceIndex = i;
+                    }
+                }
+            }
+
+            if (leastDistance < currentFrameBlob.diagonalSize * 1.15) {
+                updateExistingBlob(currentFrameBlob, existingBlobs.get(leastDistanceIndex));
+            } else {
+                addNew(currentFrameBlob, existingBlobs);
+            }
+        }
+
+        for (Blob existingBlob : existingBlobs) {
+            if (!existingBlob.matchFoundOrIsNew) {
+                existingBlob.consecutiveFramesWithoutAMatch++;
+            }
+            if (existingBlob.consecutiveFramesWithoutAMatch >= 5) {
+                existingBlob.isStillTracked = false;
+            }
+        }
+    }
+
+    private void updateExistingBlob(Blob currentFrameBlob, Blob closestExistingBlob) {
+        closestExistingBlob.contour = currentFrameBlob.contour;
+        closestExistingBlob.boundingRect = currentFrameBlob.boundingRect;
+        closestExistingBlob.positionHistory.add(currentFrameBlob.position());
+        closestExistingBlob.diagonalSize = currentFrameBlob.diagonalSize;
+        closestExistingBlob.aspectRatio = currentFrameBlob.aspectRatio;
+        closestExistingBlob.isStillTracked = true;
+        closestExistingBlob.matchFoundOrIsNew = true;
+    }
+
+    private void addNew(Blob currentFrameBlob, List<Blob> existingBlobs) {
+        currentFrameBlob.matchFoundOrIsNew = true;
+        existingBlobs.add(currentFrameBlob);
+    }
+
+    private double distanceBetweenPoints(Point point1, Point point2) {
+        double intX = Math.abs(point1.x - point2.x);
+        double intY = Math.abs(point1.y - point2.y);
+
+        return Math.sqrt(Math.pow(intX, 2) + Math.pow(intY, 2));
     }
 
     private boolean notInitialized() {
@@ -62,21 +127,34 @@ public class BlobDetector {
         transformedFrame = new Mat(newFrame.size(), newFrame.type());
     }
 
-    private void drawBlobRects(Mat currFrame, Mat dest, List<Blob> blobs) {
-        currFrame.copyTo(dest);
-        for (Blob blob : blobs) {
-            Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), SCALAR_BLUE, 2);
-            Imgproc.circle(dest, blob.centerPosition, 3, SCALAR_GREEN, -1);
+    private void drawBlobRects(Mat frame, List<Blob> blobs) {
+        drawBlobRects(frame, frame, blobs);
+    }
+
+    private void drawBlobRects(Mat frame, Mat dest, List<Blob> blobs) {
+        if (frame != dest) {
+            frame.copyTo(dest);
+        }
+        for (int i = 0; i < blobs.size(); i++) {
+            Blob blob = blobs.get(i);
+            if (blob.isStillTracked) {
+                Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), COLOR_BLUE, 2);
+                Imgproc.circle(dest, blob.position(), 3, COLOR_GREEN, -1);
+                int fontFace = Core.FONT_HERSHEY_SIMPLEX;
+                double fontScale = blob.diagonalSize / 60;
+                int fontThickness = (int)Math.round(fontScale);
+                Imgproc.putText(dest, String.valueOf(i), blob.position(), fontFace, fontScale, COLOR_RED, fontThickness);
+            }
         }
     }
 
     private void drawBlobs(List<Blob> blobs, Mat out) {
-        out.setTo(SCALAR_BLACK);
+        out.setTo(COLOR_BLACK);
         List<MatOfPoint> hullsOfBlobs = new ArrayList<>();
         for (Blob blob : blobs) {
             hullsOfBlobs.add(blob.contour);
         }
-        Imgproc.drawContours(out, hullsOfBlobs, -1, SCALAR_WHITE, -1);
+        Imgproc.drawContours(out, hullsOfBlobs, -1, COLOR_WHITE, -1);
     }
 
     private void bwBlur(Mat prevFrame) {
@@ -95,20 +173,11 @@ public class BlobDetector {
         List<Blob> blobs = new ArrayList<>();
         for (MatOfPoint convexHull : convexHulls) {
             Blob possibleBlob = new Blob(convexHull);
-            if (isValid(possibleBlob)) {
+            if (possibleBlob.isValid()) {
                 blobs.add(possibleBlob);
             }
         }
         return blobs;
-    }
-
-    private boolean isValid(Blob blob) {
-        return blob.boundingRect.area() > 100 &&
-                blob.aspectRatio >= 0.2 &&
-                blob.aspectRatio <= 1.2 &&
-                blob.boundingRect.width > 15 &&
-                blob.boundingRect.height > 20 &&
-                blob.diagonalSize > 30;
     }
 
     @NonNull
