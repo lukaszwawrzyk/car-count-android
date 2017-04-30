@@ -16,7 +16,7 @@ final class Blob {
     List<Point> positionHistory;
     boolean matchFoundOrIsNew;
     boolean isStillTracked;
-    int consecutiveFramesWithoutAMatch;
+    private int consecutiveFramesWithoutAMatch;
     Point predictedPosition;
 
     Blob(MatOfPoint contour) {
@@ -39,16 +39,17 @@ final class Blob {
         consecutiveFramesWithoutAMatch = 0;
     }
 
-    Point position() { return positionHistory.get(positionHistory.size() - 1); }
+    Point currPosition() { return positionHistory.get(positionHistory.size() - 1); }
+    Point prevPosition() { return positionHistory.get(positionHistory.size() - 2); }
 
     boolean isValid() {
-        return  boundingRect.area() > 100 &&
-                aspectRatio >= 0.2 &&
-                aspectRatio <= 1.25 &&
-                boundingRect.width > 20 &&
-                boundingRect.height > 20 &&
-                diagonalSize > 30 &&
-                (Imgproc.contourArea(contour) / boundingRect.area()) > 0.40;
+        return boundingRect.area() > 400 &&
+               aspectRatio >= 0.2 &&
+               aspectRatio <= 4.0 &&
+               boundingRect.width > 30 &&
+               boundingRect.height > 30 &&
+               diagonalSize > 60 &&
+               (Imgproc.contourArea(contour) / boundingRect.area()) > 0.50;
     }
 
     void updatePredictedPosition() {
@@ -114,7 +115,7 @@ final class Blob {
         boundingRect = currentFrameBlob.boundingRect;
         diagonalSize = currentFrameBlob.diagonalSize;
         aspectRatio = currentFrameBlob.aspectRatio;
-        positionHistory.add(currentFrameBlob.position());
+        positionHistory.add(currentFrameBlob.currPosition());
         matchFoundOrIsNew = currentFrameBlob.matchFoundOrIsNew;
         isStillTracked = currentFrameBlob.isStillTracked;
     }
@@ -128,7 +129,13 @@ final class Blob {
         }
     }
 
-    public boolean isCloseEnough(double distance) {
+    boolean isCloseEnough(double distance) {
         return distance < diagonalSize * 1.15;
+    }
+
+    boolean horizontalLineCrossedFromBottom(int crossingLinePosition) {
+        return positionHistory.size() >= 2 &&
+                prevPosition().y > crossingLinePosition &&
+                currPosition().y <= crossingLinePosition;
     }
 }

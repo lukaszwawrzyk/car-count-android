@@ -1,7 +1,6 @@
 package pl.edu.agh.sr.cvtest.counting;
 
 import android.support.annotation.NonNull;
-import android.util.Log;
 import org.opencv.core.*;
 
 import java.util.ArrayList;
@@ -12,12 +11,18 @@ import org.opencv.core.Core;
 
 public class BlobDetector {
 
+    private static final Drawing draw = new Drawing();
+
     private Mat storedPrevFrame;
     private Mat storedCurrentFrame;
 
     private Mat transformedFrame;
 
     private List<Blob> blobs = new ArrayList<>();
+    private Point[] crossingLine;
+    private int crossingLinePosition;
+
+    private int carCount = 0;
 
     public Mat getMovingObjects(Mat newFrame) {
         if (notInitialized()) {
@@ -33,16 +38,30 @@ public class BlobDetector {
         diffWithThreshold(prevFrame, currFrame, transformedFrame);
         dilate(transformedFrame);
         List<Blob> currentFrameBlobs = getBlobs(transformedFrame);
+        updateBlobs(currentFrameBlobs);
+        boolean lineCrossed = countLineCrossingBlobs();
+        Mat output = storedCurrentFrame.clone();
+        draw.finalFrame(output, blobs, crossingLine, lineCrossed, carCount);
+        return output;
+    }
 
+    private boolean countLineCrossingBlobs() {
+        boolean crossed = false;
+        for (Blob blob : blobs) {
+            if (blob.isStillTracked && blob.horizontalLineCrossedFromBottom(crossingLinePosition)) {
+                carCount++;
+                crossed = true;
+            }
+        }
+        return crossed;
+    }
+
+    private void updateBlobs(List<Blob> currentFrameBlobs) {
         if (blobs.isEmpty()) {
             blobs.addAll(currentFrameBlobs);
         } else {
             matchBlobs(blobs, currentFrameBlobs);
         }
-
-        Mat output = storedCurrentFrame.clone();
-        drawBlobRects(output, blobs);
-        return output;
     }
 
     private void matchBlobs(List<Blob> existingBlobs, List<Blob> currentFrameBlobs) {
@@ -64,7 +83,7 @@ public class BlobDetector {
 
         for (Blob existingBlob : existingBlobs) {
             if (existingBlob.isStillTracked) {
-                double distance = distanceBetweenPoints(newBlob.position(), existingBlob.predictedPosition);
+                double distance = distanceBetweenPoints(newBlob.currPosition(), existingBlob.predictedPosition);
                 if (distance < minDistance) {
                     minDistance = distance;
                     closestExistingBlob = existingBlob;
@@ -100,36 +119,18 @@ public class BlobDetector {
     private void initFromFirstFrame(Mat newFrame) {
         storedCurrentFrame = newFrame.clone();
         transformedFrame = new Mat(newFrame.size(), newFrame.type());
-    }
 
-    private void drawBlobRects(Mat frame, List<Blob> blobs) {
-        drawBlobRects(frame, frame, blobs);
-    }
+        crossingLinePosition = (int)Math.round(newFrame.rows() * 0.35);
 
-    private void drawBlobRects(Mat frame, Mat dest, List<Blob> blobs) {
-        if (frame != dest) {
-            frame.copyTo(dest);
-        }
-        for (int i = 0; i < blobs.size(); i++) {
-            Blob blob = blobs.get(i);
-            if (blob.isStillTracked) {
-                Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), Colors.BLUE, 2);
-                Imgproc.circle(dest, blob.position(), 3, Colors.GREEN, -1);
-                int fontFace = Core.FONT_HERSHEY_SIMPLEX;
-                double fontScale = blob.diagonalSize / 100;
-                int fontThickness = (int)Math.round(fontScale);
-                Imgproc.putText(dest, String.valueOf(i), blob.position(), fontFace, fontScale, Colors.RED, fontThickness);
-            }
-        }
-    }
+        crossingLine = new Point[2];
+        crossingLine[0] = new Point();
+        crossingLine[1] = new Point();
 
-    private void drawBlobs(List<Blob> blobs, Mat out) {
-        out.setTo(Colors.BLACK);
-        List<MatOfPoint> hullsOfBlobs = new ArrayList<>();
-        for (Blob blob : blobs) {
-            hullsOfBlobs.add(blob.contour);
-        }
-        Imgproc.drawContours(out, hullsOfBlobs, -1, Colors.WHITE, -1);
+        crossingLine[0].x = 0;
+        crossingLine[1].x = newFrame.cols() - 1;
+
+        crossingLine[0].y = crossingLinePosition;
+        crossingLine[1].y = crossingLinePosition;
     }
 
     private void bwBlur(Mat prevFrame) {
@@ -192,20 +193,6 @@ public class BlobDetector {
         }
         point.fromList(points);
         return point;
-    }
-
-    private void dumpMat(String msg, Mat threshold) {
-        StringBuilder res = new StringBuilder(msg + "\n");
-        for (int col = 0; col < threshold.cols(); col++) {
-            for (int row = 0; row < threshold.rows(); row++) {
-                byte[] x = new byte[4];
-                threshold.get(row, col, x);
-                res.append(x[0] + x[1] + x[2] + x[3]);
-                res.append(" ");
-            }
-            res.append("\n");
-        }
-        Log.d("AAA", res.toString());
     }
 
 }
