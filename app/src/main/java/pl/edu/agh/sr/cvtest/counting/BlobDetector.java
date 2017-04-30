@@ -17,8 +17,6 @@ public class BlobDetector {
 
     private Mat transformedFrame;
 
-    private boolean isFirstFrame = true;
-
     private List<Blob> blobs = new ArrayList<>();
 
     public Mat getMovingObjects(Mat newFrame) {
@@ -34,11 +32,10 @@ public class BlobDetector {
         bwBlur(currFrame);
         diffWithThreshold(prevFrame, currFrame, transformedFrame);
         dilate(transformedFrame);
-        List<Blob> currentFrameBlobs = getBlobs();
+        List<Blob> currentFrameBlobs = getBlobs(transformedFrame);
 
-        if (isFirstFrame) {
+        if (blobs.isEmpty()) {
             blobs.addAll(currentFrameBlobs);
-            isFirstFrame = false;
         } else {
             matchBlobs(blobs, currentFrameBlobs);
         }
@@ -51,59 +48,43 @@ public class BlobDetector {
     private void matchBlobs(List<Blob> existingBlobs, List<Blob> currentFrameBlobs) {
         for (Blob existingBlob : existingBlobs) {
             existingBlob.matchFoundOrIsNew = false;
-            existingBlob.predictNextPosition();
+            existingBlob.updatePredictedPosition();
         }
         for (Blob currentFrameBlob : currentFrameBlobs) {
-            int leastDistanceIndex = 0;
-            double leastDistance = 100000;
-
-            for (int i = 0; i < existingBlobs.size(); i++) {
-                if (existingBlobs.get(i).isStillTracked) {
-                    double distance = distanceBetweenPoints(currentFrameBlob.position(), existingBlobs.get(i).predictedPosition);
-                    if (distance < leastDistance) {
-                        leastDistance = distance;
-                        leastDistanceIndex = i;
-                    }
-                }
-            }
-
-            if (leastDistance < currentFrameBlob.diagonalSize * 1.15) {
-                updateExistingBlob(currentFrameBlob, existingBlobs.get(leastDistanceIndex));
-            } else {
-                addNew(currentFrameBlob, existingBlobs);
-            }
+            addAsNewOrUpdate(existingBlobs, currentFrameBlob);
         }
+        for (Blob existingBlob : existingBlobs) {
+            existingBlob.updateTrackStatus();
+        }
+    }
+
+    private void addAsNewOrUpdate(List<Blob> existingBlobs, Blob newBlob) {
+        Blob closestExistingBlob = existingBlobs.get(0);
+        double minDistance = 10000000;
 
         for (Blob existingBlob : existingBlobs) {
-            if (!existingBlob.matchFoundOrIsNew) {
-                existingBlob.consecutiveFramesWithoutAMatch++;
-            }
-            if (existingBlob.consecutiveFramesWithoutAMatch >= 5) {
-                existingBlob.isStillTracked = false;
+            if (existingBlob.isStillTracked) {
+                double distance = distanceBetweenPoints(newBlob.position(), existingBlob.predictedPosition);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestExistingBlob = existingBlob;
+                }
             }
         }
-    }
 
-    private void updateExistingBlob(Blob currentFrameBlob, Blob closestExistingBlob) {
-        closestExistingBlob.contour = currentFrameBlob.contour;
-        closestExistingBlob.boundingRect = currentFrameBlob.boundingRect;
-        closestExistingBlob.positionHistory.add(currentFrameBlob.position());
-        closestExistingBlob.diagonalSize = currentFrameBlob.diagonalSize;
-        closestExistingBlob.aspectRatio = currentFrameBlob.aspectRatio;
-        closestExistingBlob.isStillTracked = true;
-        closestExistingBlob.matchFoundOrIsNew = true;
-    }
-
-    private void addNew(Blob currentFrameBlob, List<Blob> existingBlobs) {
-        currentFrameBlob.matchFoundOrIsNew = true;
-        existingBlobs.add(currentFrameBlob);
+        newBlob.matchFoundOrIsNew = true;
+        newBlob.isStillTracked = true;
+        if (newBlob.isCloseEnough(minDistance)) {
+            closestExistingBlob.updateFrom(newBlob);
+        } else {
+            existingBlobs.add(newBlob);
+        }
     }
 
     private double distanceBetweenPoints(Point point1, Point point2) {
-        double intX = Math.abs(point1.x - point2.x);
-        double intY = Math.abs(point1.y - point2.y);
-
-        return Math.sqrt(Math.pow(intX, 2) + Math.pow(intY, 2));
+        double xDiff = Math.abs(point1.x - point2.x);
+        double yDiff = Math.abs(point1.y - point2.y);
+        return Math.sqrt(Math.pow(xDiff, 2) + Math.pow(yDiff, 2));
     }
 
     private boolean notInitialized() {
@@ -135,7 +116,7 @@ public class BlobDetector {
                 Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), Colors.BLUE, 2);
                 Imgproc.circle(dest, blob.position(), 3, Colors.GREEN, -1);
                 int fontFace = Core.FONT_HERSHEY_SIMPLEX;
-                double fontScale = blob.diagonalSize / 60;
+                double fontScale = blob.diagonalSize / 100;
                 int fontThickness = (int)Math.round(fontScale);
                 Imgproc.putText(dest, String.valueOf(i), blob.position(), fontFace, fontScale, Colors.RED, fontThickness);
             }
@@ -162,8 +143,8 @@ public class BlobDetector {
     }
 
     @NonNull
-    private List<Blob> getBlobs() {
-        List<MatOfPoint> convexHulls = getConvexHullsOfContours();
+    private List<Blob> getBlobs(Mat frame) {
+        List<MatOfPoint> convexHulls = getConvexHullsOfContours(frame);
         List<Blob> blobs = new ArrayList<>();
         for (MatOfPoint convexHull : convexHulls) {
             Blob possibleBlob = new Blob(convexHull);
@@ -175,9 +156,9 @@ public class BlobDetector {
     }
 
     @NonNull
-    private List<MatOfPoint> getConvexHullsOfContours() {
+    private List<MatOfPoint> getConvexHullsOfContours(Mat frame) {
         List<MatOfPoint> contours = new ArrayList<>();
-        Imgproc.findContours(transformedFrame, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+        Imgproc.findContours(frame, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
         List<MatOfPoint> convexHulls = new ArrayList<>(contours.size());
         MatOfInt hull = new MatOfInt();
         for (int i = 0; i < contours.size(); i++) {

@@ -51,7 +51,7 @@ final class Blob {
                 (Imgproc.contourArea(contour) / boundingRect.area()) > 0.40;
     }
 
-    void predictNextPosition() {
+    void updatePredictedPosition() {
         int numPositions = positionHistory.size();
         Point lastPosition = positionHistory.get(numPositions - 1);
 
@@ -107,5 +107,28 @@ final class Blob {
         } else {
             // should never get here
         }
+    }
+
+    void updateFrom(Blob currentFrameBlob) {
+        contour = currentFrameBlob.contour;
+        boundingRect = currentFrameBlob.boundingRect;
+        diagonalSize = currentFrameBlob.diagonalSize;
+        aspectRatio = currentFrameBlob.aspectRatio;
+        positionHistory.add(currentFrameBlob.position());
+        matchFoundOrIsNew = currentFrameBlob.matchFoundOrIsNew;
+        isStillTracked = currentFrameBlob.isStillTracked;
+    }
+
+    void updateTrackStatus() {
+        if (!matchFoundOrIsNew) {
+            consecutiveFramesWithoutAMatch++;
+        }
+        if (consecutiveFramesWithoutAMatch >= 5) {
+            isStillTracked = false;
+        }
+    }
+
+    public boolean isCloseEnough(double distance) {
+        return distance < diagonalSize * 1.15;
     }
 }
