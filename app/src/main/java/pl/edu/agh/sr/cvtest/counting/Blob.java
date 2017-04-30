@@ -9,13 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class Blob {
+    int id;
     MatOfPoint contour;
     Rect boundingRect;
     double diagonalSize;
     double aspectRatio;
     List<Point> positionHistory;
     boolean matchFoundOrIsNew;
-    boolean isStillTracked;
     private int consecutiveFramesWithoutAMatch;
     Point predictedPosition;
 
@@ -34,7 +34,6 @@ final class Blob {
         diagonalSize = Math.sqrt(Math.pow(boundingRect.width, 2) + Math.pow(boundingRect.height, 2));
         aspectRatio = (float)boundingRect.width / (float)boundingRect.height;
 
-        isStillTracked = true;
         matchFoundOrIsNew = true;
         consecutiveFramesWithoutAMatch = 0;
     }
@@ -117,23 +116,20 @@ final class Blob {
         aspectRatio = currentFrameBlob.aspectRatio;
         positionHistory.add(currentFrameBlob.currPosition());
         matchFoundOrIsNew = currentFrameBlob.matchFoundOrIsNew;
-        isStillTracked = currentFrameBlob.isStillTracked;
     }
 
-    void updateTrackStatus() {
+    boolean disappeared() {
         if (!matchFoundOrIsNew) {
             consecutiveFramesWithoutAMatch++;
         }
-        if (consecutiveFramesWithoutAMatch >= 5) {
-            isStillTracked = false;
-        }
+        return consecutiveFramesWithoutAMatch >= 5;
     }
 
     boolean isCloseEnough(double distance) {
         return distance < diagonalSize * 1.15;
     }
 
-    boolean horizontalLineCrossedFromBottom(int crossingLinePosition) {
+    boolean isHorizontalLineCrossedFromBottom(int crossingLinePosition) {
         return positionHistory.size() >= 2 &&
                 prevPosition().y > crossingLinePosition &&
                 currPosition().y <= crossingLinePosition;

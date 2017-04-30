@@ -4,6 +4,7 @@ import android.support.annotation.NonNull;
 import org.opencv.core.*;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.opencv.imgproc.Imgproc;
@@ -31,36 +32,30 @@ public class BlobDetector {
         }
         shiftFrames(newFrame);
 
-
         Mat prevFrame = storedPrevFrame;
         Mat currFrame = storedCurrentFrame.clone();
+        List<Blob> currentFrameBlobs = transformFrameAndResolveBlobs(prevFrame, currFrame);
+        updateBlobs(currentFrameBlobs);
+        boolean lineCrossed = countLineCrossingBlobs();
+
+        Mat output = storedCurrentFrame.clone();
+        draw.finalFrame(output, blobs, crossingLine, lineCrossed, carCount);
+        return output;
+    }
+
+    @NonNull
+    private List<Blob> transformFrameAndResolveBlobs(Mat prevFrame, Mat currFrame) {
         bwBlur(prevFrame);
         bwBlur(currFrame);
         diffWithThreshold(prevFrame, currFrame, transformedFrame);
         dilate(transformedFrame);
-
-        FourWayDisplay display = new FourWayDisplay(transformedFrame);
-        display.put1(transformedFrame);
-
-        List<Blob> currentFrameBlobs = getBlobs(transformedFrame);
-        draw.blobs(currentFrameBlobs, transformedFrame);
-        display.put2(transformedFrame);
-
-        updateBlobs(currentFrameBlobs);
-        draw.blobs(blobs, transformedFrame);
-        display.put3(transformedFrame);
-
-        boolean lineCrossed = countLineCrossingBlobs();
-        Mat output = currFrame; // storedCurrentFrame.clone();
-        draw.finalFrame(output, blobs, crossingLine, lineCrossed, carCount);
-        display.put4(output);
-        return display.getOutputImg();
+        return getBlobs(transformedFrame);
     }
 
     private boolean countLineCrossingBlobs() {
         boolean crossed = false;
         for (Blob blob : blobs) {
-            if (blob.isStillTracked && blob.horizontalLineCrossedFromBottom(crossingLinePosition)) {
+            if (blob.isHorizontalLineCrossedFromBottom(crossingLinePosition)) {
                 carCount++;
                 crossed = true;
             }
@@ -70,46 +65,58 @@ public class BlobDetector {
 
     private void updateBlobs(List<Blob> currentFrameBlobs) {
         if (blobs.isEmpty()) {
-            blobs.addAll(currentFrameBlobs);
+            for (Blob currentFrameBlob : currentFrameBlobs) {
+                addNewBlob(currentFrameBlob);
+            }
         } else {
-            matchBlobs(blobs, currentFrameBlobs);
+            matchBlobs(currentFrameBlobs);
         }
     }
 
-    private void matchBlobs(List<Blob> existingBlobs, List<Blob> currentFrameBlobs) {
-        for (Blob existingBlob : existingBlobs) {
+    private void matchBlobs(List<Blob> currentFrameBlobs) {
+        for (Blob existingBlob : blobs) {
             existingBlob.matchFoundOrIsNew = false;
             existingBlob.updatePredictedPosition();
         }
         for (Blob currentFrameBlob : currentFrameBlobs) {
-            addAsNewOrUpdate(existingBlobs, currentFrameBlob);
+            addAsNewOrUpdate( currentFrameBlob);
         }
-        for (Blob existingBlob : existingBlobs) {
-            existingBlob.updateTrackStatus();
+        Iterator<Blob> iterator = blobs.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().disappeared()) {
+                iterator.remove();
+            }
         }
     }
 
-    private void addAsNewOrUpdate(List<Blob> existingBlobs, Blob newBlob) {
-        Blob closestExistingBlob = existingBlobs.get(0);
+    private void addAsNewOrUpdate(Blob newBlob) {
+        Blob closestExistingBlob = blobs.get(0);
         double minDistance = 10000000;
 
-        for (Blob existingBlob : existingBlobs) {
-            if (existingBlob.isStillTracked) {
-                double distance = distanceBetweenPoints(newBlob.currPosition(), existingBlob.predictedPosition);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestExistingBlob = existingBlob;
-                }
+        for (Blob existingBlob : blobs) {
+            double distance = distanceBetweenPoints(newBlob.currPosition(), existingBlob.predictedPosition);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestExistingBlob = existingBlob;
             }
         }
 
         newBlob.matchFoundOrIsNew = true;
-        newBlob.isStillTracked = true;
         if (newBlob.isCloseEnough(minDistance)) {
             closestExistingBlob.updateFrom(newBlob);
         } else {
-            existingBlobs.add(newBlob);
+            addNewBlob(newBlob);
         }
+    }
+
+    private void addNewBlob(Blob newBlob) {
+        newBlob.id = nextId();
+        blobs.add(newBlob);
+    }
+
+    private int currentId = 1;
+    private int nextId() {
+        return currentId++;
     }
 
     private double distanceBetweenPoints(Point point1, Point point2) {

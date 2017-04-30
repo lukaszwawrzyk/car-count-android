@@ -7,33 +7,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 class Drawing {
+    private static final int fontFace = Core.FONT_HERSHEY_SIMPLEX;
 
     void blobs(List<Blob> blobs, Mat out) {
         out.setTo(Colors.BLACK);
         List<MatOfPoint> hullsOfBlobs = new ArrayList<>();
         for (Blob blob : blobs) {
-            if (blob.isStillTracked) {
-                hullsOfBlobs.add(blob.contour);
-            }
+            hullsOfBlobs.add(blob.contour);
         }
         Imgproc.drawContours(out, hullsOfBlobs, -1, Colors.WHITE, -1);
     }
 
     void finalFrame(Mat output, List<Blob> blobs, Point[] crossingLine, boolean lineCrossed, int carCount) {
-        drawBlobRects(output, blobs);
+        drawBlobBoundingRects(output, blobs);
         drawCrossingLine(output, crossingLine, lineCrossed);
         drawCrossingBlobsCount(output, carCount);
     }
 
-    private void drawCrossingBlobsCount(Mat output, int carCount) {
-        int fontFace = Core.FONT_HERSHEY_SIMPLEX;
-        double fontScale = (output.rows() * output.cols()) / 300000.0;
-        int fontThickness = (int) Math.round(fontScale * 1.5);
-        Size textSize = Imgproc.getTextSize(String.valueOf(carCount), fontFace, fontScale, fontThickness, null);
-        Point blPosition = new Point();
-        blPosition.x = output.cols() - 1 - (int)(textSize.width * 1.25);
-        blPosition.y = (int)(textSize.height * 1.25);
-        Imgproc.putText(output, String.valueOf(carCount), blPosition, fontFace, fontScale, Colors.GREEN, fontThickness);
+    private void drawBlobBoundingRects(Mat dest, List<Blob> blobs) {
+        for (Blob blob : blobs) {
+            Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), Colors.ORANGE, 2);
+            Imgproc.circle(dest, blob.currPosition(), 3, Colors.GREEN, -1);
+            double fontScale = blob.diagonalSize / 100;
+            int fontThickness = (int)Math.round(fontScale);
+            Imgproc.putText(dest, String.valueOf(blob.id), blob.currPosition(), fontFace, fontScale, Colors.GREEN, fontThickness);
+        }
     }
 
     private void drawCrossingLine(Mat output, Point[] crossingLine, boolean lineCrossed) {
@@ -48,27 +46,16 @@ class Drawing {
         Imgproc.line(output, line[0], line[1], color, 2);
     }
 
-
-    private void drawBlobRects(Mat frame, List<Blob> blobs) {
-        drawBlobRects(frame, frame, blobs);
+    private void drawCrossingBlobsCount(Mat output, int carCount) {
+        double fontScale = (output.rows() * output.cols()) / 300000.0;
+        int fontThickness = (int) Math.round(fontScale * 1.5);
+        Size textSize = Imgproc.getTextSize(String.valueOf(carCount), fontFace, fontScale, fontThickness, null);
+        Point blPosition = new Point();
+        blPosition.x = output.cols() - 1 - (int)(textSize.width * 1.25);
+        blPosition.y = (int)(textSize.height * 1.25);
+        Imgproc.putText(output, String.valueOf(carCount), blPosition, fontFace, fontScale, Colors.GREEN, fontThickness);
     }
 
-    private void drawBlobRects(Mat frame, Mat dest, List<Blob> blobs) {
-        if (frame != dest) {
-            frame.copyTo(dest);
-        }
-        for (int i = 0; i < blobs.size(); i++) {
-            Blob blob = blobs.get(i);
-            if (blob.isStillTracked) {
-                Imgproc.rectangle(dest, blob.boundingRect.tl(), blob.boundingRect.br(), Colors.BLUE, 2);
-                Imgproc.circle(dest, blob.currPosition(), 3, Colors.GREEN, -1);
-                int fontFace = Core.FONT_HERSHEY_SIMPLEX;
-                double fontScale = blob.diagonalSize / 100;
-                int fontThickness = (int)Math.round(fontScale);
-                Imgproc.putText(dest, String.valueOf(i), blob.currPosition(), fontFace, fontScale, Colors.RED, fontThickness);
-            }
-        }
-    }
 
 
 }
