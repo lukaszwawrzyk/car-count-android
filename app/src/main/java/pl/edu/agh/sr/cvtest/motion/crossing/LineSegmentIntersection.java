@@ -3,6 +3,9 @@ package pl.edu.agh.sr.cvtest.motion.crossing;
 import org.opencv.core.Point;
 
 class LineSegmentIntersection {
+
+    private static final double THRESHOLD = 0.001;
+
     static boolean intersect(Point a, Point b, Point c, Point d) {
         return get_line_intersection(a.x, a.y, b.x, b.y, c.x, c.y, d.x, d.y);
     }
@@ -39,6 +42,6 @@ class LineSegmentIntersection {
     }
 
     private static boolean eq(double a, double b) {
-        return Math.abs(a - b) < 0.001;
+        return Math.abs(a - b) < THRESHOLD;
     }
 }

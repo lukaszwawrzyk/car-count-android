@@ -10,7 +10,7 @@ public class Stopwatch {
         return new Stopwatch();
     }
 
-    public Stopwatch() {
+    private Stopwatch() {
         lastMeasuredTime = System.nanoTime();
     }
 

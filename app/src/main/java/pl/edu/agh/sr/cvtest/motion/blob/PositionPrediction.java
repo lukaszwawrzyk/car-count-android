@@ -6,7 +6,7 @@ import java.util.List;
 
 class PositionPrediction {
 
-    public static final int MAX_POSITIONS_TO_LOOK_BACK = 4;
+    private static final int MAX_POSITIONS_TO_LOOK_BACK = 4;
 
     static Point predictNext(List<Point> positionHistory) {
         int lastIndex = positionHistory.size() - 1;
