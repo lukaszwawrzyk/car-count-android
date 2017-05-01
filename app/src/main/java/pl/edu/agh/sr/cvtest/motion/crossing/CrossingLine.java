@@ -5,10 +5,9 @@ import org.opencv.core.Size;
 
 public class CrossingLine {
     private Point[] startAndEnd;
-    private int position;
 
     public CrossingLine(Size frameSize) {
-        position = (int)Math.round(frameSize.height * 0.35);
+        int position = (int)Math.round(frameSize.height * 0.35);
 
         startAndEnd = new Point[2];
         startAndEnd[0] = new Point();
@@ -22,7 +21,7 @@ public class CrossingLine {
     }
 
     public boolean crossed(Point previous, Point current) {
-        return previous.y > position && current.y <= position;
+        return LineSegmentIntersection.intersect(startAndEnd[0], startAndEnd[1], previous, current);
     }
 
     public Point[] points() {
