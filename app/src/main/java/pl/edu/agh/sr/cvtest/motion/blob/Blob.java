@@ -16,9 +16,9 @@ public final class Blob {
     public double diagonalSize;
     private double aspectRatio;
     public List<Point> positionHistory;
-    public boolean matchFoundOrIsNew;
+    boolean matchFoundOrIsNew;
     private int consecutiveFramesWithoutAMatch;
-    public Point predictedPosition;
+    Point predictedPosition;
 
     Blob(MatOfPoint contour) {
         positionHistory = new ArrayList<>();
@@ -54,25 +54,7 @@ public final class Blob {
     }
 
     void updatePredictedPosition() {
-        int lastIndex = positionHistory.size() - 1;
-        Point lastPosition = positionHistory.get(lastIndex);
-        int numbersOfDiffsToCalculate = Math.min(lastIndex, 4);
-
-        int diffWeight = numbersOfDiffsToCalculate;
-        int totalDiffWeight = 0;
-        double totalXChangesWeighted = 0;
-        double totalYChangesWeighted = 0;
-        for (int i = 0; i < numbersOfDiffsToCalculate; i++) {
-            totalXChangesWeighted += (positionHistory.get(lastIndex - i).x - positionHistory.get(lastIndex - i - 1).x) * diffWeight;
-            totalYChangesWeighted += (positionHistory.get(lastIndex - i).y - positionHistory.get(lastIndex - i - 1).y) * diffWeight;
-            totalDiffWeight += diffWeight;
-            diffWeight -= 1;
-        }
-        int deltaX = totalDiffWeight == 0 ? 0 : (int)Math.round(totalXChangesWeighted / totalDiffWeight);
-        int deltaY = totalDiffWeight == 0 ? 0 : (int)Math.round(totalYChangesWeighted / totalDiffWeight);
-
-        predictedPosition.x = lastPosition.x + deltaX;
-        predictedPosition.y = lastPosition.y + deltaY;
+        predictedPosition = PositionPrediction.predictNext(positionHistory);
     }
 
     void updateFrom(Blob currentFrameBlob) {
