@@ -54,61 +54,25 @@ public final class Blob {
     }
 
     void updatePredictedPosition() {
-        int numPositions = positionHistory.size();
-        Point lastPosition = positionHistory.get(numPositions - 1);
+        int lastIndex = positionHistory.size() - 1;
+        Point lastPosition = positionHistory.get(lastIndex);
+        int numbersOfDiffsToCalculate = Math.min(lastIndex, 4);
 
-        if (numPositions == 1) {
-            predictedPosition.x = lastPosition.x;
-            predictedPosition.y = lastPosition.y;
-        } else if (numPositions == 2) {
-            double deltaX = positionHistory.get(1).x - positionHistory.get(0).x;
-            double deltaY = positionHistory.get(1).y - positionHistory.get(0).y;
-            predictedPosition.x = lastPosition.x + deltaX;
-            predictedPosition.y = lastPosition.y + deltaY;
-        } else if (numPositions == 3) {
-            double sumOfXChanges = ((positionHistory.get(2).x - positionHistory.get(1).x) * 2) +
-                    ((positionHistory.get(1).x - positionHistory.get(0).x) * 1);
-            int deltaX = (int)Math.round(sumOfXChanges / 3.0);
-
-            double sumOfYChanges = ((positionHistory.get(2).y - positionHistory.get(1).y) * 2) +
-                    ((positionHistory.get(1).y - positionHistory.get(0).y) * 1);
-            int deltaY = (int)Math.round(sumOfYChanges / 3.0);
-
-            predictedPosition.x = lastPosition.x + deltaX;
-            predictedPosition.y = lastPosition.y + deltaY;
-        } else if (numPositions == 4) {
-            double sumOfXChanges = ((positionHistory.get(3).x - positionHistory.get(2).x) * 3) +
-                    ((positionHistory.get(2).x - positionHistory.get(1).x) * 2) +
-                    ((positionHistory.get(1).x - positionHistory.get(0).x) * 1);
-            int deltaX = (int)Math.round(sumOfXChanges / 6.0);
-
-            double sumOfYChanges = ((positionHistory.get(3).y - positionHistory.get(2).y) * 3) +
-                    ((positionHistory.get(2).y - positionHistory.get(1).y) * 2) +
-                    ((positionHistory.get(1).y - positionHistory.get(0).y) * 1);
-            int deltaY = (int)Math.round(sumOfYChanges / 6.0);
-
-            predictedPosition.x = lastPosition.x + deltaX;
-            predictedPosition.y = lastPosition.y + deltaY;
-        } else if (numPositions >= 5) {
-            double sumOfXChanges = ((positionHistory.get(numPositions - 1).x - positionHistory.get(numPositions - 2).x) * 4) +
-                    ((positionHistory.get(numPositions - 2).x - positionHistory.get(numPositions - 3).x) * 3) +
-                    ((positionHistory.get(numPositions - 3).x - positionHistory.get(numPositions - 4).x) * 2) +
-                    ((positionHistory.get(numPositions - 4).x - positionHistory.get(numPositions - 5).x) * 1);
-
-            int deltaX = (int)Math.round(sumOfXChanges / 10.0);
-
-            double sumOfYChanges = ((positionHistory.get(numPositions - 1).y - positionHistory.get(numPositions - 2).y) * 4) +
-                    ((positionHistory.get(numPositions - 2).y - positionHistory.get(numPositions - 3).y) * 3) +
-                    ((positionHistory.get(numPositions - 3).y - positionHistory.get(numPositions - 4).y) * 2) +
-                    ((positionHistory.get(numPositions - 4).y - positionHistory.get(numPositions - 5).y) * 1);
-
-            int deltaY = (int)Math.round(sumOfYChanges / 10.0);
-
-            predictedPosition.x = lastPosition.x + deltaX;
-            predictedPosition.y = lastPosition.y + deltaY;
-        } else {
-            // should never get here
+        int diffWeight = numbersOfDiffsToCalculate;
+        int totalDiffWeight = 0;
+        double totalXChangesWeighted = 0;
+        double totalYChangesWeighted = 0;
+        for (int i = 0; i < numbersOfDiffsToCalculate; i++) {
+            totalXChangesWeighted += (positionHistory.get(lastIndex - i).x - positionHistory.get(lastIndex - i - 1).x) * diffWeight;
+            totalYChangesWeighted += (positionHistory.get(lastIndex - i).y - positionHistory.get(lastIndex - i - 1).y) * diffWeight;
+            totalDiffWeight += diffWeight;
+            diffWeight -= 1;
         }
+        int deltaX = totalDiffWeight == 0 ? 0 : (int)Math.round(totalXChangesWeighted / totalDiffWeight);
+        int deltaY = totalDiffWeight == 0 ? 0 : (int)Math.round(totalYChangesWeighted / totalDiffWeight);
+
+        predictedPosition.x = lastPosition.x + deltaX;
+        predictedPosition.y = lastPosition.y + deltaY;
     }
 
     void updateFrom(Blob currentFrameBlob) {
