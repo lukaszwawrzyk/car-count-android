@@ -22,6 +22,8 @@ public class BlobDetector {
         diffWithThreshold(prevFrame, currFrame, auxFrame);
         Mat secondAuxFrame = prevFrame;
         dilate(auxFrame, secondAuxFrame);
+        dilate(secondAuxFrame, auxFrame);
+        erode(auxFrame, secondAuxFrame);
         return getBlobs(secondAuxFrame);
     }
 
@@ -45,6 +47,10 @@ public class BlobDetector {
 
     private void dilate(Mat frame, Mat out) {
         Imgproc.dilate(frame, out, structuringElement5x5);
+    }
+
+    private void erode(Mat frame, Mat out) {
+        Imgproc.erode(frame, out, structuringElement5x5);
     }
 
     private List<Blob> getBlobs(Mat frame) {

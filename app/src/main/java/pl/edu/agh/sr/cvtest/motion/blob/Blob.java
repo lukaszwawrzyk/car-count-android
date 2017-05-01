@@ -44,12 +44,10 @@ public final class Blob {
     private Point prevPosition() { return positionHistory.get(positionHistory.size() - 2); }
 
     boolean hasExpectedSizeAndShape() {
-        return boundingRect.area() > 400 &&
-               aspectRatio >= 0.2 &&
-               aspectRatio <= 4.0 &&
-               boundingRect.width > 30 &&
-               boundingRect.height > 30 &&
-               diagonalSize > 60 &&
+        return aspectRatio >= 0.4 &&
+               aspectRatio <= 3.0 &&
+               boundingRect.width > 35 &&
+               boundingRect.height > 35 &&
                (Imgproc.contourArea(contour) / boundingRect.area()) > 0.50;
     }
 
