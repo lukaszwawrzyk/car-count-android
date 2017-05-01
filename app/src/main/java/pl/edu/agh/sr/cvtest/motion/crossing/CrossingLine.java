@@ -28,4 +28,9 @@ public class CrossingLine {
     public Point[] points() {
         return startAndEnd;
     }
+
+    public void updateEnds(Point start, Point end) {
+        startAndEnd[0] = start;
+        startAndEnd[1] = end;
+    }
 }

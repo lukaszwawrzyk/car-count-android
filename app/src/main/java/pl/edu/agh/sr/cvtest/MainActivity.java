@@ -11,7 +11,8 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
-import pl.edu.agh.sr.cvtest.motion.MainLoop;
+import org.opencv.core.Point;
+import pl.edu.agh.sr.cvtest.motion.BlobCountingDisplay;
 
 public class MainActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
@@ -22,7 +23,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
     private static final int PREVIEW_HEIGHT = 480;
 
     private CameraBridgeViewBase cameraView;
-    private MainLoop loop;
+    private BlobCountingDisplay loop;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +42,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
             switch (status) {
                 case LoaderCallbackInterface.SUCCESS:
                     Log.i(TAG, "OpenCV loaded successfully");
-                    loop = new MainLoop();
+                    loop = new BlobCountingDisplay();
                     cameraView.enableView();
                     break;
                 default:
@@ -53,9 +54,23 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        Log.d(TAG, event.toString());
+        if (event.getPointerCount() == 2) {
+            MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
+            event.getPointerCoords(0, coords);
+            Point start = mapToCameraViewCoordinates(coords);
+            event.getPointerCoords(1, coords);
+            Point end = mapToCameraViewCoordinates(coords);
+            loop.updateLinePosition(start, end);
+        }
         return true;
     }
+
+    private Point mapToCameraViewCoordinates(MotionEvent.PointerCoords coords) {
+        double xFactor = (double) PREVIEW_WIDTH / cameraView.getWidth();
+        double yFactor = (double) PREVIEW_HEIGHT / cameraView.getHeight();
+        return new Point(coords.x * xFactor, coords.y * yFactor);
+    }
+
 
     @Override
     public void onResume() {

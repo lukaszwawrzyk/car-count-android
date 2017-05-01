@@ -1,6 +1,7 @@
 package pl.edu.agh.sr.cvtest.motion;
 
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import pl.edu.agh.sr.cvtest.motion.blob.Blob;
 import pl.edu.agh.sr.cvtest.motion.blob.BlobDetector;
 import pl.edu.agh.sr.cvtest.motion.blob.BlobTracker;
@@ -10,7 +11,7 @@ import pl.edu.agh.sr.cvtest.motion.drawing.Drawing;
 
 import java.util.List;
 
-public class MainLoop {
+public class BlobCountingDisplay {
 
     private Mat storedPreviousFrame;
     private Mat storedCurrentFrame;
@@ -60,4 +61,7 @@ public class MainLoop {
         storedCurrentFrame = newFrame.clone();
     }
 
+    public void updateLinePosition(Point start, Point end) {
+        crossingLine.updateEnds(start, end);
+    }
 }
