@@ -3,6 +3,7 @@ package pl.edu.agh.sr.cvtest;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.WindowManager;
@@ -16,14 +17,13 @@ import pl.edu.agh.sr.cvtest.motion.BlobCountingDisplay;
 
 public class MainActivity extends Activity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
-    private static final String TAG = "MAIN";
-
     // 176x144 640x480 1024x768 1280x720
     private static final int PREVIEW_WIDTH = 640;
     private static final int PREVIEW_HEIGHT = 480;
 
     private CameraBridgeViewBase cameraView;
-    private BlobCountingDisplay loop;
+    private BlobCountingDisplay blobCountingDisplay;
+    private GestureDetector gestureDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +34,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         cameraView.setMaxFrameSize(PREVIEW_WIDTH, PREVIEW_HEIGHT);
         cameraView.setVisibility(SurfaceView.VISIBLE);
         cameraView.setCvCameraViewListener(this);
+        gestureDetector = new GestureDetector(this, doubleTapCallback);
     }
 
     private BaseLoaderCallback openCvLoaderCallback = new BaseLoaderCallback(this) {
@@ -41,8 +42,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         public void onManagerConnected(int status) {
             switch (status) {
                 case LoaderCallbackInterface.SUCCESS:
-                    Log.i(TAG, "OpenCV loaded successfully");
-                    loop = new BlobCountingDisplay();
+                    blobCountingDisplay = new BlobCountingDisplay();
                     cameraView.enableView();
                     break;
                 default:
@@ -52,17 +52,30 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         }
     };
 
+    private GestureDetector.OnGestureListener doubleTapCallback = new GestureDetector.SimpleOnGestureListener() {
+        @Override
+        public boolean onDoubleTap(MotionEvent e) {
+            blobCountingDisplay.resetCounter();
+            return true;
+        }
+    };
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        gestureDetector.onTouchEvent(event);
         if (event.getPointerCount() == 2) {
-            MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
-            event.getPointerCoords(0, coords);
-            Point start = mapToCameraViewCoordinates(coords);
-            event.getPointerCoords(1, coords);
-            Point end = mapToCameraViewCoordinates(coords);
-            loop.updateLinePosition(start, end);
+            updateCrossingLinePosition(event);
         }
         return true;
+    }
+
+    private void updateCrossingLinePosition(MotionEvent event) {
+        MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
+        event.getPointerCoords(0, coords);
+        Point start = mapToCameraViewCoordinates(coords);
+        event.getPointerCoords(1, coords);
+        Point end = mapToCameraViewCoordinates(coords);
+        blobCountingDisplay.updateLinePosition(start, end);
     }
 
     private Point mapToCameraViewCoordinates(MotionEvent.PointerCoords coords) {
@@ -70,7 +83,6 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
         double yFactor = (double) PREVIEW_HEIGHT / cameraView.getHeight();
         return new Point(coords.x * xFactor, coords.y * yFactor);
     }
-
 
     @Override
     public void onResume() {
@@ -96,7 +108,7 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
     }
 
     @Override public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        return loop.getFrame(inputFrame.rgba());
+        return blobCountingDisplay.getFrame(inputFrame.rgba());
     }
 
     @Override public void onCameraViewStarted(int width, int height) { }

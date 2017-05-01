@@ -22,24 +22,24 @@ public class BlobCountingDisplay {
     private BlobTracker blobTracker;
     private CrossingBlobsCounter blobCounter;
 
+    public void updateLinePosition(Point start, Point end) {
+        crossingLine.updateEnds(start, end);
+    }
+
+    public void resetCounter() {
+        blobCounter.reset();
+    }
+
     public Mat getFrame(Mat newFrame) {
         if (notInitialized()) {
             initFromFirstFrame(newFrame);
             return newFrame;
         }
         shiftFrames(newFrame);
+
         Mat prevFrame = storedPreviousFrame;
         Mat currFrame = storedCurrentFrame.clone();
-        List<Blob> currentBlobs = blobDetector.detect(prevFrame, currFrame);
-        blobTracker.update(currentBlobs);
-        boolean isLineCrossed = blobCounter.count(blobTracker.blobs());
-        return drawFrame(isLineCrossed);
-    }
-
-    private Mat drawFrame(boolean isLineCrossed) {
-        Mat output = storedCurrentFrame.clone();
-        draw.finalFrame(output, blobTracker.blobs(), crossingLine, isLineCrossed, blobCounter.value());
-        return output;
+        return processFrame(prevFrame, currFrame);
     }
 
     private boolean notInitialized() {
@@ -61,7 +61,17 @@ public class BlobCountingDisplay {
         storedCurrentFrame = newFrame.clone();
     }
 
-    public void updateLinePosition(Point start, Point end) {
-        crossingLine.updateEnds(start, end);
+    private Mat processFrame(Mat prevFrame, Mat currFrame) {
+        List<Blob> currentBlobs = blobDetector.detect(prevFrame, currFrame);
+        blobTracker.update(currentBlobs);
+        boolean isLineCrossed = blobCounter.count(blobTracker.blobs());
+        return drawFrame(isLineCrossed);
     }
+
+    private Mat drawFrame(boolean isLineCrossed) {
+        Mat output = storedCurrentFrame.clone();
+        draw.finalFrame(output, blobTracker.blobs(), crossingLine, isLineCrossed, blobCounter.value());
+        return output;
+    }
+
 }

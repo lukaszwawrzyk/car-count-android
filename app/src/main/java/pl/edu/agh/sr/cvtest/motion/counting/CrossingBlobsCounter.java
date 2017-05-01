@@ -27,4 +27,7 @@ public class CrossingBlobsCounter {
         return crossed;
     }
 
+    public void reset() {
+        counter = 0;
+    }
 }
