@@ -3,6 +3,7 @@ package pl.edu.agh.sr.cvtest;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 import org.opencv.android.BaseLoaderCallback;
@@ -49,6 +50,12 @@ public class MainActivity extends Activity implements CameraBridgeViewBase.CvCam
             }
         }
     };
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        Log.d(TAG, event.toString());
+        return true;
+    }
 
     @Override
     public void onResume() {

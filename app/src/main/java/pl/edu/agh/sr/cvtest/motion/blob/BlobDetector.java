@@ -2,36 +2,40 @@ package pl.edu.agh.sr.cvtest.motion.blob;
 
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
+import pl.edu.agh.sr.cvtest.util.Stopwatch;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BlobDetector {
-    private final Mat transformedFrame;
+    private final Mat auxFrame;
+    private Mat structuringElement5x5;
 
-    public BlobDetector(Mat transformedFrame) {
-        this.transformedFrame = transformedFrame;
+    public BlobDetector(Mat auxFrame) {
+        this.auxFrame = auxFrame;
+        this.structuringElement5x5 = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
     }
 
     public List<Blob> detect(Mat prevFrame, Mat currFrame) {
         bwBlur(prevFrame);
         bwBlur(currFrame);
-        diffWithThreshold(prevFrame, currFrame, transformedFrame);
-        dilate(transformedFrame);
-        return getBlobs(transformedFrame);
+        diffWithThreshold(prevFrame, currFrame, auxFrame);
+        Mat secondAuxFrame = prevFrame;
+        dilate(auxFrame, secondAuxFrame);
+        return getBlobs(secondAuxFrame);
     }
 
     private void bwBlur(Mat frame) {
-        toBW(frame);
-        blur(frame);
+        toBW(frame, auxFrame);
+        blur(auxFrame, frame);
     }
 
-    private void toBW(Mat frame) {
-        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
+    private void toBW(Mat frame, Mat out) {
+        Imgproc.cvtColor(frame, out, Imgproc.COLOR_BGR2GRAY);
     }
 
-    private void blur(Mat frame) {
-        Imgproc.GaussianBlur(frame, frame, new Size(5, 5), 0);
+    private void blur(Mat frame, Mat out) {
+        Imgproc.blur(frame, out, new Size(5, 5));
     }
 
     private void diffWithThreshold(Mat prevFrame, Mat nextFrame, Mat output) {
@@ -39,9 +43,8 @@ public class BlobDetector {
         Imgproc.threshold(output, output, 30, 255, Imgproc.THRESH_BINARY);
     }
 
-    private void dilate(Mat frame) {
-        Mat structuringElement5x5 = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(5, 5));
-        Imgproc.dilate(frame, frame, structuringElement5x5);
+    private void dilate(Mat frame, Mat out) {
+        Imgproc.dilate(frame, out, structuringElement5x5);
     }
 
     private List<Blob> getBlobs(Mat frame) {

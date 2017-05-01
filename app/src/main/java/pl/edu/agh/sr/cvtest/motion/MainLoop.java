@@ -27,7 +27,6 @@ public class MainLoop {
             return newFrame;
         }
         shiftFrames(newFrame);
-
         Mat prevFrame = storedPreviousFrame;
         Mat currFrame = storedCurrentFrame.clone();
         List<Blob> currentBlobs = blobDetector.detect(prevFrame, currFrame);
